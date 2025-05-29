@@ -1,0 +1,95 @@
+__include__: [
+  '../../dataset/custom_detection.yml',
+  '../../runtime.yml',
+  '../include/dataloader.yml',
+  '../include/optimizer.yml',
+  '../include/dfine_hgnetv2.yml',
+]
+
+output_dir: ./output/dfine_hgnetv2_n_distill
+kd_teacher_weights: "/path/to/your/BEST_TEACHER_D-FINE_MODEL.pth"
+kd_teacher_config: "/path/to/your/teacher_model_config_IF_DIFFERENT.yml"
+
+kd_loss_type: "dfine_logical"   # Kích hoạt KD loss, phải khớp với lựa chọn trong `train.py`
+kd_loss_decay: "linear_epoch"   # Kiểu suy giảm: 'constant', 'cosine_epoch', 'linear_epoch'
+kd_loss_stop_epoch_ratio: 0.8   # Áp dụng KD trong 80% số epoch đầu. Ví dụ: 0.8 * 220 epochs
+kd_loss_ratio: 1.0              # Trọng số tổng thể cho KD loss. Thử nghiệm với các giá trị (0.5, 1.0, 1.5, 2.0)
+
+# Các tham số cụ thể sẽ được đọc bởi DFINELogicLoss.__init__ thông qua self.cfg trong DetSolver
+kd_iou_expand_ratio: 1.25
+kd_power_transform_power: 2.0
+kd_l1_loss_weight: 5.0
+kd_iou_loss_weight: 2.0
+kd_cls_loss_weight: 1.0
+
+DFINE:
+  backbone: HGNetv2
+
+HGNetv2:
+  name: 'B0'
+  return_idx: [2, 3]
+  freeze_at: -1
+  freeze_norm: False
+  use_lab: True
+
+
+HybridEncoder:
+  in_channels: [512, 1024]
+  feat_strides: [16, 32]
+
+  # intra
+  hidden_dim: 128
+  use_encoder_idx: [1]
+  dim_feedforward: 512
+
+  # cross
+  expansion: 0.34
+  depth_mult: 0.5
+
+
+DFINETransformer:
+  feat_channels: [128, 128]
+  feat_strides: [16, 32]
+  hidden_dim: 128
+  dim_feedforward: 512
+  num_levels: 2
+
+  num_layers: 3
+  eval_idx: -1
+
+  num_points: [6, 6]
+
+optimizer:
+  type: AdamW
+  params:
+    -
+      params: '^(?=.*backbone)(?!.*norm|bn).*$'
+      lr: 0.0004
+    -
+      params: '^(?=.*backbone)(?=.*norm|bn).*$'
+      lr: 0.0004
+      weight_decay: 0.
+    -
+      params: '^(?=.*(?:encoder|decoder))(?=.*(?:norm|bn|bias)).*$'
+      weight_decay: 0.
+
+  lr: 0.0008
+  betas: [0.9, 0.999]
+  weight_decay: 0.0001
+
+
+# Increase to search for the optimal ema
+epochs: 220
+train_dataloader:
+  total_batch_size: 128
+  dataset:
+    transforms:
+      policy:
+        epoch: 200
+  collate_fn:
+    stop_epoch: 200
+    ema_restart_decay: 0.9999
+    base_size_repeat: ~
+
+val_dataloader:
+  total_batch_size: 256
