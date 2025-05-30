@@ -28,8 +28,8 @@ val_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/fisheye8k/fisheye8K/val/images
-    ann_file: /kaggle/input/fisheye8k/fisheye8K/val/val.json
+    img_folder: /kaggle/input/idontknow2108/images_all
+    ann_file: /kaggle/input/idontknow2108/test.json
     return_masks: False
     transforms:
       type: Compose
