@@ -11,8 +11,8 @@ train_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/baseline2-circle/baseline2-circle/images
-    ann_file: /kaggle/input/baseline2-circle/baseline2-circle/train.json
+    img_folder: /kaggle/input/bl2-circle/images
+    ann_file: /kaggle/input/bl2-circle/train.json
     return_masks: False
     transforms:
       type: Compose
